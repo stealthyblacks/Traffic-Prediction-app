@@ -2,209 +2,119 @@ import streamlit as st
 import pandas as pd
 import joblib
 import plotly.express as px
-from sklearn.metrics import confusion_matrix, classification_report
-import sqlite3
 from datetime import datetime
-import time
 from streamlit_lottie import st_lottie
+import json
+import requests
 
-class TrafficPredictorApp:
-    def __init__(self):
-        self.model = joblib.load('traffic_model.pkl')
-        self.label_encoders = joblib.load('label_encoders.pkl')
-        self.feature_columns = joblib.load('feature_columns.pkl')
+# Function to load Lottie animation from a URL with error handling
+def load_lottie_url(url: str):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for errors
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error loading animation: {e}")
+        return None
 
-        # Initialize SQLite connection
-        self.db_connection = sqlite3.connect('traffic_predictions.db')
-        self.db_cursor = self.db_connection.cursor()
-        self._create_table()
+# Load model and supporting files
+model = joblib.load('traffic_model.pkl')
+label_encoders = joblib.load('label_encoders.pkl')
+feature_columns = joblib.load('feature_columns.pkl')
+df = pd.read_csv('mobility_with_new_features.csv')
 
-        # Set dark theme
-        st.set_page_config(page_title="Traffic Condition Predictor", page_icon="🚦", layout="wide", initial_sidebar_state="expanded")
-        st.markdown('<style>body {background-color: #212121; color: white;}</style>', unsafe_allow_html=True)
+# Load the Lottie animation
+lottie_animation = load_lottie_url("https://assets9.lottiefiles.com/packages/lf20_Q7WY7CfUco.json")
 
-        if 'history' not in st.session_state:
-            st.session_state['history'] = pd.DataFrame(columns=[ 
-                'Vehicle_Count', 'Traffic_Speed_kmh', 'Road_Occupancy_%', 
-                'Traffic_Light_State', 'Weather_Condition', 'Accident_Report', 
-                'Hour', 'DayOfWeek', 'Prediction'
-            ])
+# App config
+st.set_page_config(page_title="Traffic Predictor Dashboard", layout="wide", page_icon="🚦", initial_sidebar_state="expanded")
 
-    def _create_table(self):
-        """Create table in SQLite database."""
-        self.db_cursor.execute('''
-        CREATE TABLE IF NOT EXISTS predictions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Timestamp TEXT,
-            Vehicle_Count INTEGER,
-            Traffic_Speed_kmh REAL,
-            Road_Occupancy REAL,
-            Traffic_Light_State TEXT,
-            Weather_Condition TEXT,
-            Accident_Report INTEGER,
-            Hour INTEGER,
-            DayOfWeek TEXT,
-            Prediction TEXT
-        )
-        ''')
-        self.db_connection.commit()
+# Sidebar navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard"])
 
-    def log_to_sqlite(self, input_data, prediction):
-        """Log input and prediction to SQLite database."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.db_cursor.execute('''
-        INSERT INTO predictions (Timestamp, Vehicle_Count, Traffic_Speed_kmh, Road_Occupancy, 
-        Traffic_Light_State, Weather_Condition, Accident_Report, Hour, DayOfWeek, Prediction)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (timestamp, input_data['Vehicle_Count'], input_data['Traffic_Speed_kmh'], 
-              input_data['Road_Occupancy_%'], input_data['Traffic_Light_State'], 
-              input_data['Weather_Condition'], input_data['Accident_Report'], 
-              input_data['Hour'], input_data['DayOfWeek'], prediction))
-        self.db_connection.commit()
+# Home
+if page == "Home":
+    st.title("🚦 Smart Traffic Prediction System")
+    if lottie_animation:
+        st_lottie(lottie_animation, speed=1, loop=True, quality="high", height=300)
+    st.markdown("""
+        Welcome to the interactive dashboard for traffic prediction using smart mobility data. 
+        Navigate using the sidebar to explore insights or predict traffic conditions.
+    """)
 
-    def show_title(self):
-        st.title("🚦 Traffic Condition Predictor")
-        st.markdown("Make predictions and see how traffic condition patterns evolve over time.")
+# Traffic Prediction
+elif page == "Traffic Prediction":
+   with st.form("prediction_form"):
+    col1, col2 = st.columns(2)
+    with col1:
+        vehicle_count = st.number_input("Vehicle Count", min_value=0)
+        traffic_speed = st.slider("Traffic Speed (km/h)", 0, 150, 50)
+        road_occupancy = st.slider("Road Occupancy (%)", 0, 100, 30)
+    with col2:
+        traffic_light = st.selectbox("Traffic Light State", label_encoders['Traffic_Light_State'].classes_)
+        weather = st.selectbox("Weather Condition", label_encoders['Weather_Condition'].classes_)
+        # Ensure that 'Accident_Report' exists in your label_encoders
+        if 'Accident_Report' in label_encoders:
+            accident = st.selectbox("Accident Report", label_encoders['Accident_Report'].classes_)
+        else:
+            st.error("Error: 'Accident_Report' label encoder is missing.")
+            accident = None
+    hour = st.slider("Hour of Day", 0, 23, datetime.now().hour)
+    day_of_week = st.selectbox("Day of Week", label_encoders['DayOfWeek'].classes_)
+    submit = st.form_submit_button("Predict")
 
-    def get_user_input(self):
-        with st.form("prediction_form"):
-            input_data = {}
-            input_data['Vehicle_Count'] = st.number_input("Vehicle Count", min_value=0)
-            input_data['Traffic_Speed_kmh'] = st.number_input("Traffic Speed (km/h)", min_value=0.0)
-            input_data['Road_Occupancy_%'] = st.slider("Road Occupancy (%)", 0.0, 100.0)
-            input_data['Traffic_Light_State'] = st.selectbox(
-                "Traffic Light State", 
-                self.label_encoders['Traffic_Light_State'].classes_
-            )
-            input_data['Weather_Condition'] = st.selectbox(
-                "Weather Condition", 
-                self.label_encoders['Weather_Condition'].classes_
-            )
-            accident = st.radio("Accident Reported?", ['No', 'Yes'])
-            input_data['Accident_Report'] = 1 if accident == 'Yes' else 0
-            input_data['Hour'] = st.slider("Hour of Day (0-23)", 0, 23)
-            input_data['DayOfWeek'] = st.selectbox(
-                "Day of Week", 
-                self.label_encoders['DayOfWeek'].classes_
-            )
-            submitted = st.form_submit_button("Predict")
-        return submitted, input_data
-
-    def preprocess_input(self, input_data):
-        df = pd.DataFrame([input_data])
-        for col in ['Traffic_Light_State', 'Weather_Condition', 'DayOfWeek']:
-            df[col] = self.label_encoders[col].transform(df[col])
-        return df[self.feature_columns]
-
-    def make_prediction(self, input_df):
-        prediction = self.model.predict(input_df)
-        proba = self.model.predict_proba(input_df)[0]
-        classes = self.label_encoders['Traffic_Condition'].inverse_transform(
-            list(range(len(proba)))
-        )
-        return prediction[0], classes, proba
-
-    def store_history(self, raw_input, pred_class):
-        entry = raw_input.copy()
-        entry['Prediction'] = self.label_encoders['Traffic_Condition'].inverse_transform([pred_class])[0]
-        st.session_state['history'] = pd.concat([st.session_state['history'], pd.DataFrame([entry])], ignore_index=True)
-
-    def show_prediction(self, pred_class, classes, proba):
-        decoded = self.label_encoders['Traffic_Condition'].inverse_transform([pred_class])[0]
-        st.success(f"🚗 Predicted Traffic Condition: **{decoded}**")
-
-        prob_df = pd.DataFrame({
-            'Traffic Condition': classes,
-            'Probability': proba
-        }).sort_values(by='Probability', ascending=False)
-
-        fig = px.bar(
-            prob_df,
-            x='Traffic Condition',
-            y='Probability',
-            color='Traffic Condition',
-            title="Model Confidence per Traffic Condition",
-            text_auto='.2f'
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    def show_history_chart(self):
-        if not st.session_state['history'].empty:
-            st.subheader("📈 Prediction History")
-            hist_df = st.session_state['history']
-            fig = px.histogram(
-                hist_df,
-                x='Prediction',
-                color='Prediction',
-                title='Traffic Condition Prediction Frequency',
-                barmode='group'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-            st.dataframe(hist_df[::-1])  # show most recent on top
-
-    def show_model_details(self):
-        st.subheader("📊 Model Evaluation")
-        y_true = st.session_state['history']['Prediction']
-        y_pred = st.session_state['history']['Prediction']  # Or use model for predictions
-        cm = confusion_matrix(y_true, y_pred)
-        st.write("Confusion Matrix:")
-        st.write(cm)
-        st.write("Classification Report:")
-        st.text(classification_report(y_true, y_pred))
-
-    def show_about(self):
-        st.subheader("🔍 About")
-        st.markdown("""
-            This Traffic Condition Prediction app leverages machine learning to predict traffic conditions 
-            based on various input parameters, including vehicle count, traffic speed, road occupancy, 
-            traffic light state, and weather conditions.
-            **Features:**
-            - Make predictions for traffic conditions.
-            - View model evaluation metrics.
-            - Track prediction history with charts.
-        """)
-
-    def show_progress_bar(self):
-        progress_bar = st.progress(0)
-        for i in range(100):
-            time.sleep(0.05)
-            progress_bar.progress(i + 1)
-
-    def show_lottie_animation(self):
-        url = "https://assets9.lottiefiles.com/packages/lf20_Na7AM3.json"
-        st_lottie(url, speed=1, width=500, height=500)
-
-    def run(self):
-        self.show_lottie_animation()
-        self.show_title()
-
-        # Create dashboard tabs
-        tab_selection = st.sidebar.radio(
-            "Select a Section:",
-            ("Prediction", "Prediction History", "Model Details", "About")
-        )
-
-        if tab_selection == "Prediction":
-            submitted, user_input = self.get_user_input()
-            if submitted:
-                self.show_progress_bar()  # Show progress bar during prediction
-                input_df = self.preprocess_input(user_input)
-                pred_class, classes, proba = self.make_prediction(input_df)
-                self.store_history(user_input, pred_class)
-                self.log_to_sqlite(user_input, pred_class)  # Log to database
-                self.show_prediction(pred_class, classes, proba)
-
-        elif tab_selection == "Prediction History":
-            self.show_history_chart()
-
-        elif tab_selection == "Model Details":
-            self.show_model_details()
-
-        elif tab_selection == "About":
-            self.show_about()
+if submit:
+    input_dict = {
+        'Vehicle_Count': vehicle_count,
+        'Traffic_Speed_kmh': traffic_speed,
+        'Road_Occupancy_%': road_occupancy,
+        'Traffic_Light_State': traffic_light,
+        'Weather_Condition': weather,
+        'Accident_Report': accident,  # If accident is None, it should not be added
+        'Hour': hour,
+        'DayOfWeek': day_of_week
+    }
+    for col, le in label_encoders.items():
+        if col in input_dict and input_dict[col] is not None:
+            input_dict[col] = le.transform([input_dict[col]])[0]
+    input_df = pd.DataFrame([input_dict])[feature_columns]
+    prediction = model.predict(input_df)[0]
+    target_le = label_encoders['Traffic_Condition']
+    prediction_label = target_le.inverse_transform([prediction])[0]
+    st.success(f"Predicted Traffic Condition: **{prediction_label}**")
 
 
-if __name__ == "__main__":
-    app = TrafficPredictorApp()
-    app.run()
+# EDA Dashboard
+elif page == "EDA Dashboard":
+    st.title("📊 Exploratory Data Analysis Dashboard")
+    with st.sidebar:
+        st.subheader("Filter Data")
+        date_range = st.date_input("Select Date Range", [df['Date'].min(), df['Date'].max()])
+        hour_range = st.slider("Select Hour Range", 0, 23, (0, 23))
+        weather_filter = st.multiselect("Weather", options=df['Weather_Condition'].unique(), default=df['Weather_Condition'].unique())
+        traffic_filter = st.multiselect("Traffic Condition", options=df['Traffic_Condition'].unique(), default=df['Traffic_Condition'].unique())
+
+    filtered_df = df[ 
+        (pd.to_datetime(df['Date']).between(pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1]))) &
+        (df['Hour'].between(hour_range[0], hour_range[1])) &
+        (df['Weather_Condition'].isin(weather_filter)) &
+        (df['Traffic_Condition'].isin(traffic_filter))
+    ]
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Average Speed", f"{filtered_df['Traffic_Speed_kmh'].mean():.2f} km/h")
+    col2.metric("Avg. Road Occupancy", f"{filtered_df['Road_Occupancy_%'].mean():.2f}%")
+    col3.metric("Total Vehicles", f"{filtered_df['Vehicle_Count'].sum()}")
+
+    st.subheader("Traffic Conditions by Hour")
+    fig = px.histogram(filtered_df, x="Hour", color="Traffic_Condition", barmode="group")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Speed vs Vehicle Count")
+    fig2 = px.scatter(filtered_df, x="Traffic_Speed_kmh", y="Vehicle_Count", color="Traffic_Condition")
+    st.plotly_chart(fig2, use_container_width=True)
+
+    st.subheader("Road Occupancy Over Time")
+    fig3 = px.line(filtered_df, x="Timestamp", y="Road_Occupancy_%", color="Traffic_Condition")
+    st.plotly_chart(fig3, use_container_width=True)
