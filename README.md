@@ -166,27 +166,15 @@ The application requires the following Python libraries:
 
 ### Prediction Form
 
-![Prediction Form](https://via.placeholder.com/800x400?text=Prediction+Form)
+![Prediction Form](./img/Prediction.png)
 
-### Prediction Results
+### Dashboard
 
-![Prediction Results](https://via.placeholder.com/800x400?text=Prediction+Results)
-
-### Prediction History
-
-![Prediction History](https://via.placeholder.com/800x400?text=Prediction+History)
-
-### Model Details
-
-![Model Details](https://via.placeholder.com/800x400?text=Model+Details)
+![Dashboard](./img/Dashboard.png)
 
 ## About
 
 This application is designed to help users predict traffic conditions based on real-time inputs. It can be used by traffic management authorities, urban planners, or anyone interested in understanding traffic patterns.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgments
 
