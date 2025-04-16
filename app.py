@@ -265,7 +265,7 @@ class TrafficPredictorApp:
             - Historical data and traffic prediction logging
 
             ### Developed By:
-            - [Your Name or Organization]
+            - Analytics Nexus
             - Traffic Data Science Team
         """)
         st.image("https://via.placeholder.com/400x200.png?text=Traffic+Prediction+App", caption="Traffic Prediction")
