@@ -38,10 +38,6 @@ This project is a **Traffic Condition Prediction Application** built using **Str
 5. **Model Evaluation**:
    - Users can view the confusion matrix and classification report to understand the model's performance.
 
-## File Structure
-
-Traffic Application/ ├── app.py # Main application file ├── traffic_model.pkl # Pre-trained machine learning model ├── label_encoders.pkl # Encoders for categorical features ├── feature_columns.pkl # List of feature columns used by the model ├── requirements.txt # Python dependencies
-
 ## Installation
 
 1. Clone the repository:
@@ -66,56 +62,6 @@ matplotlib and seaborn: For additional visualizations (if needed).
 plotly: For interactive charts and graphs.
 
 Here is the complete content for your readmd.txt file:
-
-```plaintext
-# 🚦 Traffic Condition Predictor
-
-This project is a **Traffic Condition Prediction Application** built using **Streamlit**. It leverages machine learning to predict traffic conditions based on various input parameters such as vehicle count, traffic speed, road occupancy, traffic light state, and weather conditions.
-
-## Features
-
-- **Prediction**: Input traffic-related parameters and get predictions for traffic conditions.
-- **Prediction History**: View a history of past predictions with visualizations.
-- **Model Details**: Analyze the model's performance using metrics like confusion matrix and classification report.
-- **About Section**: Learn more about the application and its features.
-
-## How It Works
-
-1. **Input Parameters**:
-   - Vehicle Count
-   - Traffic Speed (km/h)
-   - Road Occupancy (%)
-   - Traffic Light State
-   - Weather Condition
-   - Accident Reported (Yes/No)
-   - Hour of Day
-   - Day of Week
-
-2. **Prediction**:
-   - The app uses a pre-trained machine learning model (`traffic_model.pkl`) to predict traffic conditions.
-   - The model outputs the predicted traffic condition along with probabilities for each possible condition.
-
-3. **History Tracking**:
-   - All predictions are stored in a session-based history, allowing users to track and visualize past predictions.
-
-4. **Visualization**:
-   - The app uses **Plotly** to create interactive bar charts and histograms for prediction probabilities and history.
-
-5. **Model Evaluation**:
-   - Users can view the confusion matrix and classification report to understand the model's performance.
-
-## File Structure
-
-```
-
-Traffic Application/
-├── app.py # Main application file
-├── traffic_model.pkl # Pre-trained machine learning model
-├── label_encoders.pkl # Encoders for categorical features
-├── feature_columns.pkl # List of feature columns used by the model
-├── requirements.txt # Python dependencies
-
-````
 
 ## Installation
 
