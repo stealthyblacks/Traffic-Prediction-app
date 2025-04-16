@@ -1,3 +1,13 @@
+import streamlit as st
+import pandas as pd
+import joblib
+import plotly.express as px
+from datetime import datetime
+from streamlit_lottie import st_lottie
+import sqlite3
+import json
+import requests
+
 class TrafficPredictorApp:
     def __init__(self):
         self.model = None
