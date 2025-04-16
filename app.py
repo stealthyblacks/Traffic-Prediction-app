@@ -51,7 +51,7 @@ class TrafficPredictorApp:
         finally:
             conn.close()
 
-       def save_to_db(self, input_data, prediction_label):
+    def save_to_db(self, input_data, prediction_label):
             try:
                 # Decode the encoded labels to human-readable strings
                 traffic_light_str = self.label_encoders['Traffic_Light_State'].inverse_transform([input_data['Traffic_Light_State']])[0]
