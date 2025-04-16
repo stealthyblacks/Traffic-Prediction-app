@@ -309,7 +309,7 @@ if __name__ == "__main__":
     page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "History Viewer", "About"])
 
     if page == "Home":
-    app.display_home_page()
+        app.display_home_page()
     elif page == "Traffic Prediction":
         app.display_traffic_prediction()
     elif page == "EDA Dashboard":
