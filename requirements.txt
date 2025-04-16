@@ -1,7 +1,9 @@
 streamlit
 pandas
-plotly
 scikit-learn
 joblib
-sqlite3
-streamlit-lottie
+altair
+numpy
+matplotlib
+seaborn
+plotly
