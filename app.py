@@ -250,6 +250,37 @@ class TrafficPredictorApp:
         else:
             st.error("No data available for the selected filters.")
 
+    def display_sqlite_viewer(self):
+    st.title("📚 Prediction History Viewer")
+
+    history_df = self.load_history_from_db()
+
+    if history_df.empty:
+        st.warning("No prediction records found.")
+        return
+
+    # Add filters
+    with st.expander("🔎 Filter Options"):
+        col1, col2 = st.columns(2)
+        with col1:
+            traffic_conditions = history_df['Prediction'].unique().tolist()
+            selected_condition = st.multiselect("Traffic Condition", traffic_conditions, default=traffic_conditions)
+        with col2:
+            min_speed, max_speed = int(history_df['Traffic_Speed_kmh'].min()), int(history_df['Traffic_Speed_kmh'].max())
+            speed_range = st.slider("Speed (km/h)", min_speed, max_speed, (min_speed, max_speed))
+
+    filtered_df = history_df[
+        (history_df['Prediction'].isin(selected_condition)) &
+        (history_df['Traffic_Speed_kmh'].between(speed_range[0], speed_range[1]))
+    ]
+
+    st.markdown("### 📄 Filtered Records")
+    st.dataframe(filtered_df[::-1], use_container_width=True)
+
+    # Download button
+    csv = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download Filtered History", data=csv, file_name="filtered_history.csv", mime="text/csv")
+
     def display_about_page(self):
         st.title("🔍 About This App")
         st.markdown("""
@@ -275,13 +306,16 @@ if __name__ == "__main__":
 
     # ---------------------------- SIDEBAR NAV ---------------------------- #
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "About"])
+    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "History Viewer", "About"])
 
     if page == "Home":
-        app.display_home_page()
+    app.display_home_page()
     elif page == "Traffic Prediction":
         app.display_traffic_prediction()
     elif page == "EDA Dashboard":
         app.display_eda_dashboard()
+    elif page == "History Viewer":
+        app.display_sqlite_viewer()
     elif page == "About":
         app.display_about_page()
+
