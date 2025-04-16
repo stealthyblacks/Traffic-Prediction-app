@@ -51,30 +51,35 @@ class TrafficPredictorApp:
         finally:
             conn.close()
 
-    def save_to_db(self, input_data, prediction_label):
-        try:
-            conn = sqlite3.connect('prediction_history.db')
-            c = conn.cursor()
-            c.execute('''INSERT INTO history (Vehicle_Count, Traffic_Speed_kmh, "Road_Occupancy_%", 
-                                              Traffic_Light_State, Weather_Condition, Accident_Report,
-                                              Hour, DayOfWeek, Prediction)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (input_data['Vehicle_Count'],
-                       input_data['Traffic_Speed_kmh'],
-                       input_data['Road_Occupancy_%'],
-                       input_data['Traffic_Light_State'],
-                       input_data['Weather_Condition'],
-                       input_data['Accident_Report'],
-                       input_data['Hour'],
-                       input_data['DayOfWeek'],
-                       prediction_label))
-            conn.commit()
-        except sqlite3.Error as e:
-            st.error(f"Database error: {e}")
-        except KeyError as e:
-            st.error(f"KeyError: Missing key {e} in input_data. Please check the input fields.")
-        finally:
-            conn.close()
+   def save_to_db(self, input_data, prediction_label):
+    try:
+        # Decode the encoded labels to human-readable strings
+        traffic_light_str = self.label_encoders['Traffic_Light_State'].inverse_transform([input_data['Traffic_Light_State']])[0]
+        weather_str = self.label_encoders['Weather_Condition'].inverse_transform([input_data['Weather_Condition']])[0]
+        day_str = self.label_encoders['DayOfWeek'].inverse_transform([input_data['DayOfWeek']])[0]
+
+        conn = sqlite3.connect('prediction_history.db')
+        c = conn.cursor()
+        c.execute('''INSERT INTO history (Vehicle_Count, Traffic_Speed_kmh, "Road_Occupancy_%", 
+                                          Traffic_Light_State, Weather_Condition, Accident_Report,
+                                          Hour, DayOfWeek, Prediction)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (input_data['Vehicle_Count'],
+                   input_data['Traffic_Speed_kmh'],
+                   input_data['Road_Occupancy_%'],
+                   traffic_light_str,
+                   weather_str,
+                   input_data['Accident_Report'],
+                   input_data['Hour'],
+                   day_str,
+                   prediction_label))
+        conn.commit()
+    except sqlite3.Error as e:
+        st.error(f"Database error: {e}")
+    except KeyError as e:
+        st.error(f"KeyError: Missing key {e} in input_data. Please check the input fields.")
+    finally:
+        conn.close()
 
     def load_history_from_db(self):
         try:
