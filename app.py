@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
     # ---------------------------- SIDEBAR NAV ---------------------------- #
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "History Viewer", "About"])
+    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "About"])
 
     if page == "Home":
         app.display_home_page()
@@ -288,8 +288,6 @@ if __name__ == "__main__":
         app.display_traffic_prediction()
     elif page == "EDA Dashboard":
         app.display_eda_dashboard()
-    elif page == "History Viewer":
-        app.display_sqlite_viewer()
     elif page == "About":
         app.display_about_page()
 
