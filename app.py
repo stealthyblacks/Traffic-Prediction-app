@@ -38,11 +38,11 @@ class TrafficPredictorApp:
                             Vehicle_Count INTEGER,
                             Traffic_Speed_kmh REAL,
                             "Road_Occupancy_%" REAL,
-                            Traffic_Light_State INTEGER,
-                            Weather_Condition INTEGER,
+                            Traffic_Light_State TEXT,
+                            Weather_Condition TEXT,
                             Accident_Report INTEGER,
                             Hour INTEGER,
-                            DayOfWeek INTEGER,
+                            DayOfWeek TEXT,
                             Prediction TEXT
                         )''')
             conn.commit()
