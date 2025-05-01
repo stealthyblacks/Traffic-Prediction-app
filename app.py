@@ -271,13 +271,13 @@ class TrafficPredictorApp:
             st.plotly_chart(sunburst_fig, use_container_width=True)
     
         
-       def fetch_real_time_data(self):
-            """Fetch the most recent traffic data from the database."""
-            conn = sqlite3.connect('prediction_history.db')
-            query = "SELECT * FROM history ORDER BY rowid DESC LIMIT 100"  # Fetch the latest 100 records
-            df = pd.read_sql(query, conn)
-            conn.close()
-            return df
+    def fetch_real_time_data(self):
+        """Fetch the most recent traffic data from the database."""
+        conn = sqlite3.connect('prediction_history.db')
+        query = "SELECT * FROM history ORDER BY rowid DESC LIMIT 100"  # Fetch the latest 100 records
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
 
     def display_real_time_dashboard(self):
         """Display the real-time traffic data dashboard."""
