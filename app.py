@@ -255,6 +255,19 @@ class TrafficPredictorApp:
         else:
             st.error("No data available for the selected filters.")
 
+        # Average Speed by Traffic Condition
+        st.markdown("### 🚦 Average Speed by Traffic Condition")
+        avg_speed_df = filtered_df.groupby("Traffic_Condition")["Traffic_Speed_kmh"].mean().reset_index()
+        fig_avg_speed = px.bar(avg_speed_df, x="Traffic_Condition", y="Traffic_Speed_kmh",
+                               color="Traffic_Condition",
+                               title="Average Speed by Traffic Condition",
+                               labels={"Traffic_Speed_kmh": "Avg Speed (km/h)"},
+                               template="plotly_dark",
+                               text_auto='.2f')
+        fig_avg_speed.update_layout(showlegend=False)
+        st.plotly_chart(fig_avg_speed, use_container_width=True)
+
+
     def display_about_page(self):
         st.title("🔍 About This App")
         st.markdown("""
