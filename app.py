@@ -263,25 +263,7 @@ class TrafficPredictorApp:
             )
             st.plotly_chart(sunburst_fig, use_container_width=True)
     
-            # NEW: Rolling Averages of Speed & Vehicle Count
-            st.markdown("### 📈 Rolling Average: Speed vs Vehicle Count")
-    
-            rolling_df = filtered_df.sort_values("Timestamp").copy()
-            rolling_df["Speed_Rolling"] = rolling_df["Traffic_Speed_kmh"].rolling(window=12).mean()
-            rolling_df["Vehicle_Rolling"] = rolling_df["Vehicle_Count"].rolling(window=12).mean()
-    
-            roll_fig = px.line(
-                rolling_df,
-                x="Timestamp",
-                y=["Speed_Rolling", "Vehicle_Rolling"],
-                labels={"value": "Rolling Avg", "variable": "Metric"},
-                title="Rolling Average of Speed & Vehicle Count",
-                template="plotly_dark"
-            )
-            st.plotly_chart(roll_fig, use_container_width=True)
-    
-        else:
-            st.error("No data available for the selected filters.")
+        
 
 
     def display_about_page(self):
