@@ -229,15 +229,22 @@ class TrafficPredictorApp:
             fig_hour.update_layout(hovermode="x unified")
             st.plotly_chart(fig_hour, use_container_width=True)
     
-            # Busiest Day of Week
+         
+            # Busiest Day of Week (Ordered)
             st.markdown("### 📅 Busiest Day of Week")
-            day_df = filtered_df.groupby('DayOfWeek').size().reset_index(name='Count')
+            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            day_df = filtered_df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
+            day_df.columns = ['DayOfWeek', 'Count']
+            
             fig_day = px.bar(day_df, x='DayOfWeek', y='Count', color='DayOfWeek',
                              title="Traffic Volume by Day",
-                             color_continuous_scale="Viridis",
+                             category_orders={"DayOfWeek": day_order},
+                             color_discrete_sequence=px.colors.qualitative.Set3,
                              labels={"DayOfWeek": "Day of the Week", "Count": "Traffic Count"})
+            
             fig_day.update_layout(hovermode="x unified", showlegend=False)
             st.plotly_chart(fig_day, use_container_width=True)
+
     
             # Accident Pie Chart
             st.markdown("### 🚨 Accident Reports")
