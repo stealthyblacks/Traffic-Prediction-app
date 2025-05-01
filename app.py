@@ -383,7 +383,7 @@ if __name__ == "__main__":
         app.display_traffic_prediction()
     elif page == "EDA Dashboard":
         app.display_eda_dashboard()
-     elif page == "Real-Time Dashboard":
+    elif page == "Real-Time Dashboard":
         app.display_real_time_dashboard()
     elif page == "About":
         app.display_about_page()
