@@ -195,21 +195,22 @@ class TrafficPredictorApp:
 
     def display_eda_dashboard(self):
         st.title("📊 Exploratory Traffic Analysis Dashboard")
-    
+
         with st.sidebar:
             st.subheader("📋 Filter Data")
             date_range = st.date_input("Date Range", [self.df['Date'].min(), self.df['Date'].max()])
             hour_range = st.slider("Hour Range", 0, 23, (0, 23))
             weather_filter = st.multiselect("Weather Condition", self.df['Weather_Condition'].unique(), self.df['Weather_Condition'].unique())
             traffic_filter = st.multiselect("Traffic Condition", self.df['Traffic_Condition'].unique(), self.df['Traffic_Condition'].unique())
-    
-        filtered_df = self.df[
-            (pd.to_datetime(self.df['Date']).between(pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1]))) &
+
+        # Apply filters
+        filtered_df = self.df[(
+            pd.to_datetime(self.df['Date']).between(pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1]))) &
             (self.df['Hour'].between(hour_range[0], hour_range[1])) &
             (self.df['Weather_Condition'].isin(weather_filter)) &
             (self.df['Traffic_Condition'].isin(traffic_filter))
         ] if not self.df.empty else pd.DataFrame()
-    
+
         if not filtered_df.empty:
             # KPIs
             st.markdown("### 🚘 Key Metrics")
@@ -217,137 +218,55 @@ class TrafficPredictorApp:
             kpi1.metric("Avg Speed (km/h)", f"{filtered_df['Traffic_Speed_kmh'].mean():.2f}")
             kpi2.metric("Avg Occupancy (%)", f"{filtered_df['Road_Occupancy_%'].mean():.2f}")
             kpi3.metric("Total Vehicles", f"{filtered_df['Vehicle_Count'].sum()}")
-    
+
             # Busiest Hours
             st.markdown("### ⏰ Busiest Hours")
             hour_df = filtered_df.groupby('Hour').size().reset_index(name='Count')
-            fig_hour = px.line(hour_df, x='Hour', y='Count', markers=True,
-                               title="Traffic Volume by Hour",
+            fig_hour = px.line(hour_df, x='Hour', y='Count', markers=True, 
+                               title="Traffic Volume by Hour", 
                                labels={"Count": "Traffic Count", "Hour": "Hour of the Day"},
-                               template="plotly_dark", line_shape='spline')
+                               template="plotly_dark", 
+                               line_shape='spline')
             fig_hour.update_traces(line=dict(color='royalblue'))
             fig_hour.update_layout(hovermode="x unified")
             st.plotly_chart(fig_hour, use_container_width=True)
-    
-         
-            # Busiest Day of Week (Ordered)
+
+            # Busiest Day of Week
             st.markdown("### 📅 Busiest Day of Week")
-            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            day_df = filtered_df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
-            day_df.columns = ['DayOfWeek', 'Count']
-            
-            fig_day = px.bar(day_df, x='DayOfWeek', y='Count', color='DayOfWeek',
-                             title="Traffic Volume by Day",
-                             category_orders={"DayOfWeek": day_order},
-                             color_discrete_sequence=px.colors.qualitative.Set3,
+            day_df = filtered_df.groupby('DayOfWeek').size().reset_index(name='Count')
+            fig_day = px.bar(day_df, x='DayOfWeek', y='Count', color='DayOfWeek', 
+                             title="Traffic Volume by Day", 
+                             color_continuous_scale="Viridis", 
                              labels={"DayOfWeek": "Day of the Week", "Count": "Traffic Count"})
-            
             fig_day.update_layout(hovermode="x unified", showlegend=False)
             st.plotly_chart(fig_day, use_container_width=True)
 
-    
-            # Accident Pie Chart
+            # Accident Report Pie Chart
             st.markdown("### 🚨 Accident Reports")
             acc_df = filtered_df['Accident_Report'].value_counts().reset_index()
             acc_df.columns = ['Accident_Reported', 'Count']
             acc_df['Accident_Reported'] = acc_df['Accident_Reported'].map({0: 'No', 1: 'Yes'})
-            fig_acc = px.pie(acc_df, names='Accident_Reported', values='Count',
-                             title="Accident Distribution",
-                             color='Accident_Reported',
+            fig_acc = px.pie(acc_df, names='Accident_Reported', values='Count', 
+                             title="Accident Distribution", 
+                             color='Accident_Reported', 
                              color_discrete_map={'Yes': 'red', 'No': 'green'})
             fig_acc.update_traces(textinfo='percent+label', pull=[0.1, 0])
             st.plotly_chart(fig_acc, use_container_width=True)
-    
-            # NEW: Weather + Traffic Light → Traffic Condition
-            st.markdown("### 🌦️🚦 Traffic Condition by Weather & Traffic Light State")
-            sunburst_fig = px.sunburst(
-                filtered_df,
-                path=["Weather_Condition", "Traffic_Light_State", "Traffic_Condition"],
-                color="Traffic_Condition",
-                color_discrete_sequence=px.colors.qualitative.Set2,
-                title="Impact of Weather & Traffic Light on Traffic Condition",
-                template="plotly_dark"
-            )
-            st.plotly_chart(sunburst_fig, use_container_width=True)
-    
-        
-    def fetch_real_time_data(self):
-        """Fetch the most recent traffic data from the database."""
-        conn = sqlite3.connect('prediction_history.db')
-        query = "SELECT * FROM history ORDER BY rowid DESC LIMIT 100"  # Fetch the latest 100 records
-        df = pd.read_sql(query, conn)
-        conn.close()
-        return df
-
-    def display_real_time_dashboard(self):
-        """Display the real-time traffic data dashboard."""
-        st.title("📡 Real-Time Traffic Dashboard")
-        
-        with st.sidebar:
-            st.subheader("📋 Filter Real-Time Data")
-            # Filters: Date Range, Traffic Condition, Weather, etc.
-            date_range = st.date_input("Date Range", [self.df['Date'].min(), self.df['Date'].max()])
-            weather_filter = st.multiselect("Weather Condition", self.df['Weather_Condition'].unique(), self.df['Weather_Condition'].unique())
-            traffic_filter = st.multiselect("Traffic Condition", self.df['Traffic_Condition'].unique(), self.df['Traffic_Condition'].unique())
-
-        # Fetch the real-time data (the most recent records from the DB)
-        real_time_df = self.fetch_real_time_data()
-        
-        # Filter the data based on user input
-        filtered_df = real_time_df[
-            (pd.to_datetime(real_time_df['Date']).between(pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1]))) &
-            (real_time_df['Weather_Condition'].isin(weather_filter)) &
-            (real_time_df['Traffic_Condition'].isin(traffic_filter))
-        ] if not real_time_df.empty else pd.DataFrame()
-
-        if not filtered_df.empty:
-            # Display KPIs
-            st.markdown("### 🚘 Key Metrics")
-            kpi1, kpi2, kpi3 = st.columns(3)
-            kpi1.metric("Avg Speed (km/h)", f"{filtered_df['Traffic_Speed_kmh'].mean():.2f}")
-            kpi2.metric("Avg Occupancy (%)", f"{filtered_df['Road_Occupancy_%'].mean():.2f}")
-            kpi3.metric("Total Vehicles", f"{filtered_df['Vehicle_Count'].sum()}")
-
-            # Real-Time Traffic Volume by Hour
-            st.markdown("### ⏰ Real-Time Traffic Volume by Hour")
-            hour_df = filtered_df.groupby('Hour').size().reset_index(name='Count')
-            fig_hour = px.line(hour_df, x='Hour', y='Count', markers=True,
-                               title="Traffic Volume by Hour",
-                               labels={"Count": "Traffic Count", "Hour": "Hour of the Day"},
-                               template="plotly_dark", line_shape='spline')
-            fig_hour.update_traces(line=dict(color='royalblue'))
-            fig_hour.update_layout(hovermode="x unified")
-            st.plotly_chart(fig_hour, use_container_width=True)
-
-            # Real-Time Traffic Volume by Day of the Week
-            st.markdown("### 📅 Real-Time Traffic Volume by Day")
-            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            day_df = filtered_df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
-            day_df.columns = ['DayOfWeek', 'Count']
-            
-            fig_day = px.bar(day_df, x='DayOfWeek', y='Count', color='DayOfWeek',
-                             title="Traffic Volume by Day",
-                             category_orders={"DayOfWeek": day_order},
-                             color_discrete_sequence=px.colors.qualitative.Set3,
-                             labels={"DayOfWeek": "Day of the Week", "Count": "Traffic Count"})
-            
-            fig_day.update_layout(hovermode="x unified", showlegend=False)
-            st.plotly_chart(fig_day, use_container_width=True)
-
-            # Real-Time Accident Report Distribution
-            st.markdown("### 🚨 Real-Time Accident Reports")
-            acc_df = filtered_df['Accident_Report'].value_counts().reset_index()
-            acc_df.columns = ['Accident_Reported', 'Count']
-            acc_df['Accident_Reported'] = acc_df['Accident_Reported'].map({0: 'No', 1: 'Yes'})
-            fig_acc = px.pie(acc_df, names='Accident_Reported', values='Count',
-                             title="Accident Distribution",
-                             color='Accident_Reported',
-                             color_discrete_map={'Yes': 'red', 'No': 'green'})
-            fig_acc.update_traces(textinfo='percent+label', pull=[0.1, 0])
-            st.plotly_chart(fig_acc, use_container_width=True)
-
         else:
-            st.warning("No real-time data available for the selected filters.")
+            st.error("No data available for the selected filters.")
+
+            # Average Speed by Traffic Condition
+        st.markdown("### 🚦 Average Speed by Traffic Condition")
+        avg_speed_df = filtered_df.groupby("Traffic_Condition")["Traffic_Speed_kmh"].mean().reset_index()
+        fig_avg_speed = px.bar(avg_speed_df, x="Traffic_Condition", y="Traffic_Speed_kmh",
+                            color="Traffic_Condition",
+                            title="Average Speed by Traffic Condition",
+                            labels={"Traffic_Speed_kmh": "Avg Speed (km/h)"},
+                            template="plotly_dark",
+                            text_auto='.2f')
+        fig_avg_speed.update_layout(showlegend=False)
+        st.plotly_chart(fig_avg_speed, use_container_width=True)
+        
 
 
     def display_about_page(self):
@@ -375,7 +294,7 @@ if __name__ == "__main__":
 
     # ---------------------------- SIDEBAR NAV ---------------------------- #
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "Real-Time Dashboard","About"])
+    page = st.sidebar.radio("Go to", ["Home", "Traffic Prediction", "EDA Dashboard", "About"])
 
     if page == "Home":
         app.display_home_page()
@@ -383,8 +302,6 @@ if __name__ == "__main__":
         app.display_traffic_prediction()
     elif page == "EDA Dashboard":
         app.display_eda_dashboard()
-    elif page == "Real-Time Dashboard":
-        app.display_real_time_dashboard()
     elif page == "About":
         app.display_about_page()
 
